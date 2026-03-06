@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Passaggio a Livello — Battaglia Terme · Monselice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0a0c0f;
+  --surface:  #111318;
+  --surface2: #161920;
+  --border:   #1e2330;
+  --text:     #e8eaf0;
+  --muted:    #5a6070;
+  --green:    #00e676;
+  --red:      #ff1744;
+  --orange:   #ff9100;
+  --yellow:   #ffd600;
+  --blue:     #448aff;
+  --teal:     #00bcd4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(68,138,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(68,138,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;z-index:0;
+}
+
+.container{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:32px 20px 80px;}
+
+/* ── HEADER ── */
+header{margin-bottom:36px;border-bottom:1px solid var(--border);padding-bottom:24px;}
+.header-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;}
+h1{font-size:clamp(1.6rem,5vw,2.6rem);font-weight:800;line-height:1.1;letter-spacing:-.02em;}
+h1 em{color:var(--blue);font-style:normal;}
+.header-sub{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:6px;}
+
+/* ── STATUS BAR ── */
+.status-bar{display:flex;align-items:center;gap:10px;margin-bottom:28px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.dot.live{background:var(--green);animation:blink 2s infinite;}
+.dot.err{background:var(--red);}
+.dot.loading{background:var(--orange);animation:blink .7s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── SEMAFORO ── */
+.semaforo-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:44px 40px;
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  margin-bottom:20px;
+  position:relative;overflow:hidden;
+  transition:border-color .5s;
+}
+.semaforo-card.aperto{border-color:#00e67630;}
+.semaforo-card.chiuso{border-color:#ff174430;}
+.semaforo-card::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% -10%, var(--glow,transparent) 0%,transparent 65%);
+  pointer-events:none;transition:opacity .5s;
+}
+.semaforo-card.aperto{--glow:#00e67608;}
+.semaforo-card.chiuso{--glow:#ff174408;}
+
+.ring{
+  width:110px;height:110px;border-radius:50%;
+  border:3px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:44px;line-height:1;
+  transition:border-color .5s,box-shadow .5s;
+}
+.ring.aperto{border-color:var(--green);box-shadow:0 0 30px #00e67640,0 0 70px #00e67620;}
+.ring.chiuso{border-color:var(--red);box-shadow:0 0 30px #ff174450,0 0 70px #ff174025;animation:chiuso-glow 1.4s infinite;}
+@keyframes chiuso-glow{0%,100%{box-shadow:0 0 30px #ff174450,0 0 70px #ff174025;}50%{box-shadow:0 0 55px #ff174470,0 0 110px #ff174035;}}
+
+.semaforo-label{
+  font-size:clamp(2.2rem,7vw,4rem);font-weight:800;letter-spacing:-.03em;
+  transition:color .5s;
+}
+.semaforo-label.aperto{color:var(--green);}
+.semaforo-label.chiuso{color:var(--red);}
+.semaforo-label.loading{color:var(--muted);}
+
+.semaforo-desc{
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  color:var(--muted);text-align:center;max-width:460px;line-height:1.7;
+}
+
+/* prossima chiusura banner */
+.banner{
+  border-radius:10px;padding:13px 18px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  display:none;align-items:center;gap:12px;margin-bottom:20px;
+}
+.banner.warn{background:#ff910012;border:1px solid #ff910035;color:var(--orange);}
+.banner.info{background:#448aff10;border:1px solid #448aff30;color:var(--blue);}
+.banner.visible{display:flex;}
+
+/* ── SLIDER PRE-CHIUSURA ── */
+.settings-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:22px 24px;margin-bottom:20px;
+}
+.settings-title{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:16px;
+}
+.slider-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.slider-label{font-size:14px;font-weight:700;min-width:220px;}
+.slider-label span{color:var(--blue);}
+input[type=range]{
+  -webkit-appearance:none;flex:1;min-width:120px;height:4px;
+  background:linear-gradient(90deg, var(--blue) var(--pct,30%), var(--border) var(--pct,30%));
+  border-radius:4px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--blue);border:2px solid var(--bg);
+  box-shadow:0 0 0 3px #448aff30;
+}
+.slider-ticks{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;}
+.slider-hint{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5;}
+
+/* ── GRIGLIA ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:620px){.grid{grid-template-columns:1fr;}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.card-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;}
+
+/* ── LISTA TRENI ── */
+.train-list{display:flex;flex-direction:column;gap:9px;}
+.train-item{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:11px 14px;display:flex;align-items:center;gap:12px;
+  transition:border-color .3s;
+}
+.train-item.critical{border-color:#ff174450;}
+.train-item.warn{border-color:#ff910045;}
+.train-numero{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--blue);min-width:64px;}
+.train-info{flex:1;}
+.train-dest{font-size:13px;font-weight:700;margin-bottom:2px;}
+.train-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+  white-space:nowrap;
+}
+.badge.red{background:#ff174418;color:var(--red);}
+.badge.orange{background:#ff910018;color:var(--orange);}
+.badge.blue{background:#448aff14;color:var(--blue);}
+.badge.yellow{background:#ffd60018;color:var(--yellow);}
+.badge.suppressed{background:#5a607025;color:var(--muted);text-decoration:line-through;}
+
+/* ── MAPPA ── */
+#map-container{width:100%;height:260px;border-radius:8px;overflow:hidden;background:#0d1117;}
+#map{width:100%;height:100%;}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.tl-item:last-child{border-bottom:none;}
+.tl-time{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  color:var(--muted);min-width:50px;padding-top:2px;
+}
+.tl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-content{flex:1;}
+.tl-title{font-size:13px;font-weight:700;}
+.tl-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ── CONTROLS ── */
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:40px;}
+.btn{
+  font-family:'Syne',sans-serif;font-weight:700;font-size:13px;
+  padding:10px 20px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);cursor:pointer;transition:all .2s;
+}
+.btn:hover{border-color:var(--blue);color:var(--blue);}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn.primary:hover{background:#5a9bff;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.auto-info{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-left:auto;}
+.cd{font-weight:600;color:var(--text);min-width:18px;display:inline-block;}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding-top:20px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.9;}
+footer a{color:var(--blue);text-decoration:none;}
+footer strong{color:var(--text);}
+
+/* ── SKELETON ── */
+.skel{background:linear-gradient(90deg,var(--border) 25%,#252b3b 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:200;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;
+  max-width:300px;opacity:0;transform:translateY(8px);transition:all .3s;
+}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.err{border-color:var(--red);color:var(--red);}
+.toast.ok{border-color:var(--green);color:var(--green);}
+
+.empty{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);padding:16px 0;text-align:center;}
+/* ── DEBUG PANEL ── */
+.debug-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  margin-bottom:20px;overflow:hidden;
+}
+.debug-header{
+  display:flex;align-items:center;gap:10px;padding:14px 20px;cursor:pointer;
+  border-bottom:1px solid transparent;transition:border-color .2s;
+  user-select:none;
+}
+.debug-panel.open .debug-header{border-color:var(--border);}
+.debug-header-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;}
+.debug-header-title{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;flex:1;}
+.debug-chevron{font-size:10px;color:var(--muted);transition:transform .25s;}
+.debug-panel.open .debug-chevron{transform:rotate(180deg);}
+.debug-body{display:none;padding:0;}
+.debug-panel.open .debug-body{display:block;}
+.debug-table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.debug-table th{
+  padding:8px 12px;text-align:left;color:var(--muted);font-weight:400;
+  border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--bg);
+}
+.debug-table td{padding:7px 12px;border-bottom:1px solid #12151e;vertical-align:top;word-break:break-all;}
+.debug-table tr:last-child td{border-bottom:none;}
+.debug-table tr.ok td:first-child{color:var(--green);}
+.debug-table tr.err-row td:first-child{color:var(--red);}
+.debug-table tr:hover td{background:#ffffff04;}
+.debug-url{color:#5a8aff;max-width:420px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.debug-url:hover{white-space:normal;overflow:visible;}
+.debug-refresh-btn{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:4px 10px;border-radius:5px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;
+}
+.debug-refresh-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-eyebrow">Monitor Infrastruttura Ferroviaria · Linea Venezia–Bologna</div>
+    <h1>Passaggio a Livello<br><em>Battaglia Terme · Monselice</em></h1>
+    <div class="header-sub">// Dati in tempo reale via API Trenitalia — aggiornamento automatico ogni 25s</div>
+  </header>
+
+  <div class="status-bar">
+    <div class="dot loading" id="dot"></div>
+    <span id="status-msg">Connessione in corso...</span>
+    <span style="margin-left:auto" id="last-upd"></span>
+  </div>
+
+  <!-- SEMAFORO -->
+  <div class="semaforo-card" id="semaforo">
+    <div class="ring" id="ring"><span id="emoji">🚦</span></div>
+    <div class="semaforo-label loading" id="label">VERIFICA...</div>
+    <div class="semaforo-desc" id="desc">Recupero dati dal server Trenitalia...</div>
+  </div>
+
+  <!-- BANNER PROSSIMA CHIUSURA -->
+  <div class="banner warn" id="banner-warn">
+    <span>⏱</span><span id="banner-warn-text"></span>
+  </div>
+  <div class="banner info" id="banner-info">
+    <span>ℹ</span><span id="banner-info-text"></span>
+  </div>
+
+  <!-- IMPOSTAZIONE PRE-CHIUSURA -->
+  <div class="settings-card">
+    <div class="settings-title">⚙ Impostazione Anticipazione Chiusura</div>
+    <div class="slider-row">
+      <div class="slider-label">Chiudi PL <span id="slider-val">2</span> min prima del treno</div>
+      <div style="flex:1;min-width:180px;">
+        <input type="range" id="slider-prechiusura" min="0" max="10" step="0.5" value="2">
+        <div class="slider-ticks">
+          <span>0'</span><span>2'</span><span>4'</span><span>6'</span><span>8'</span><span>10'</span>
+        </div>
+      </div>
+    </div>
+    <div class="slider-hint">
+      Il passaggio a livello fisico si chiude tipicamente <strong style="color:var(--text)">1–3 minuti</strong> prima del transito del treno.<br>
+      Aumenta il valore per avere un margine di sicurezza maggiore — il semaforo mostrerà ⚠ CHIUSO prima.
+    </div>
+  </div>
+
+  <!-- GRIGLIA INFO -->
+  <div class="grid">
+    <!-- Treni -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-label">🚂 Treni rilevati sulla tratta Battaglia Terme ↔ Monselice</div>
+      <div class="train-list" id="train-list">
+        <div class="skel" style="height:58px"></div>
+        <div class="skel" style="height:58px;opacity:.6;margin-top:9px"></div>
+      </div>
+    </div>
+
+    <!-- Mappa -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-label">📍 Posizione stimata treni sulla tratta</div>
+      <div id="map-container"><canvas id="map"></canvas></div>
+    </div>
+
+    <!-- Timeline prossime chiusure -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-label">📅 Timeline chiusure previste (prossima ora)</div>
+      <div class="timeline" id="timeline">
+        <div class="empty">In attesa dati...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANNELLO DEBUG API -->
+  <div class="debug-panel" id="debug-panel">
+    <div class="debug-header" onclick="toggleDebug()">
+      <div>
+        <div class="debug-header-label">🔍 Debug</div>
+        <div class="debug-header-title">Log chiamate API ViaggiaTreno</div>
+      </div>
+      <button class="debug-refresh-btn" onclick="event.stopPropagation();fetchDebug()">↻ Ricarica</button>
+      <span class="debug-chevron">▼</span>
+    </div>
+    <div class="debug-body">
+      <table class="debug-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Label</th>
+            <th>ms</th>
+            <th>Items</th>
+            <th>URL</th>
+            <th>Errore</th>
+            <th>Ora</th>
+          </tr>
+        </thead>
+        <tbody id="debug-tbody">
+          <tr><td colspan="7" style="color:var(--muted);padding:16px 12px;">Apri il pannello per caricare il log...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn primary" id="btn-refresh" onclick="fetchData()">↻ Aggiorna</button>
+    <button class="btn" id="btn-auto" onclick="toggleAuto()">Auto: ON</button>
+    <div class="auto-info">Prossimo: <span class="cd" id="cd">25</span>s</div>
+  </div>
+
+  <footer>
+    <strong>Note tecniche</strong><br>
+    • Linea monitorata: <strong>Venezia–Bologna</strong> · PL a nord di Monselice<br>
+    • ✅ <strong>Partenze da Monselice → Venezia/Padova</strong>: PL stimato +3 min dopo la partenza<br>
+    • ✅ <strong>Arrivi a Monselice ← da Venezia/Padova</strong>: PL stimato -5 min prima dell'arrivo<br>
+    • ✅ <strong>Arrivi a Bologna ← da Venezia</strong> (treni di passaggio): PL stimato -38 min<br>
+    • ❌ Treni verso Bologna, Mantova, Legnago, Adria, Este ignorati (non passano dal PL)<br>
+    • La posizione del treno è <em>stimata</em> dall'orario teorico + ritardo; non è un dato GPS<br>
+    • Il server locale fa da proxy verso <a href="http://www.viaggiatreno.it" target="_blank">ViaggiaTreno</a> con cache di 20s<br>
+    • <span style="color:var(--orange)">⚠ Strumento indicativo — non sostituisce i segnali ufficiali del passaggio a livello</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// STATO
+// ─────────────────────────────────────────────
+let state = {
+  data: null,
+  preChiusura: 2,
+  autoOn: true,
+  cd: 25,
+  cdTimer: null,
+};
+
+// ─────────────────────────────────────────────
+// SLIDER
+// ─────────────────────────────────────────────
+const slider = document.getElementById('slider-prechiusura');
+const sliderVal = document.getElementById('slider-val');
+
+function updateSliderBg() {
+  const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+  slider.style.setProperty('--pct', pct + '%');
+}
+
+slider.addEventListener('input', () => {
+  state.preChiusura = parseFloat(slider.value);
+  sliderVal.textContent = state.preChiusura % 1 === 0 ? state.preChiusura : state.preChiusura.toFixed(1);
+  updateSliderBg();
+  // Ricalcola stato PL senza re-fetch (usa dati in cache)
+  if (state.data) renderAll(state.data);
+});
+updateSliderBg();
+
+// ─────────────────────────────────────────────
+// FETCH
+// ─────────────────────────────────────────────
+async function fetchData() {
+  document.getElementById('btn-refresh').disabled = true;
+  setDot('loading', 'Aggiornamento in corso...');
+  try {
+    const url = `/api/status?pre_chiusura=${state.preChiusura}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Risposta non valida');
+
+    state.data = data;
+    renderAll(data);
+
+    const cacheInfo = data.cached ? ` (cache ${data.cache_age_sec}s)` : '';
+    const tot = data.treniCircolanti ? ` · ${data.treniCircolanti} circolanti in Italia` : '';
+    setDot('live', `Aggiornato${cacheInfo}${tot}`);
+    document.getElementById('last-upd').textContent = new Date().toLocaleTimeString('it-IT');
+
+  } catch (err) {
+    console.error(err);
+    setDot('err', 'Errore: ' + err.message);
+    renderErrorState();
+    showToast('Errore connessione al server. Assicurati che Node.js sia avviato.', 'err');
+  }
+  document.getElementById('btn-refresh').disabled = false;
+  resetCd();
+  if (debugOpen) fetchDebug();
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function renderAll(data) {
+  // Ricalcola stato PL con il valore slider corrente (potrebbe essere diverso dal server)
+  const treni = data.treni;
+  const preChiusura = state.preChiusura;
+
+  const trenoInTransito = treni.find(t => t.eta_min >= -2 && t.eta_min <= preChiusura);
+  const prossimo = treni.find(t => t.eta_min > preChiusura);
+  const stato = trenoInTransito ? 'chiuso' : 'aperto';
+
+  renderSemaforo(stato, trenoInTransito, prossimo, preChiusura);
+  renderBanners(stato, trenoInTransito, prossimo, preChiusura);
+  renderTrainList(treni, preChiusura);
+  renderTimeline(treni, preChiusura);
+  renderMappa(treni, stato);
+}
+
+function renderSemaforo(stato, trenoInTransito, prossimo, preChiusura) {
+  const card = document.getElementById('semaforo');
+  const ring  = document.getElementById('ring');
+  const emoji = document.getElementById('emoji');
+  const label = document.getElementById('label');
+  const desc  = document.getElementById('desc');
+
+  card.className = `semaforo-card ${stato}`;
+  ring.className  = `ring ${stato}`;
+
+  if (stato === 'aperto') {
+    emoji.textContent = '🟢';
+    label.textContent = 'APERTO';
+    label.className = 'semaforo-label aperto';
+    if (prossimo) {
+      const eta = prossimo.eta_min;
+      const chiusura = eta - preChiusura;
+      desc.textContent = `Nessun treno imminente. Prossima chiusura stimata tra ${chiusura.toFixed(0)} min (treno in arrivo tra ${eta.toFixed(0)} min).`;
+    } else {
+      desc.textContent = 'Nessun treno rilevato in avvicinamento. Transito libero.';
+    }
+  } else {
+    emoji.textContent = '🔴';
+    label.textContent = 'CHIUSO';
+    label.className = 'semaforo-label chiuso';
+    const t = trenoInTransito;
+    if (t.eta_min <= 0) {
+      desc.textContent = `Treno ${t.categoria} ${t.numero} in transito (${Math.abs(t.eta_min).toFixed(0)} min fa). Attendere.`;
+    } else {
+      desc.textContent = `Treno ${t.categoria} ${t.numero} verso ${t.destinazione} tra ${t.eta_min.toFixed(1)} min. PL chiuso per anticipazione di ${preChiusura}'`.replace("'", ' min');
+    }
+  }
+}
+
+function renderBanners(stato, trenoInTransito, prossimo, preChiusura) {
+  const bWarn = document.getElementById('banner-warn');
+  const bWarnT = document.getElementById('banner-warn-text');
+  const bInfo = document.getElementById('banner-info');
+  const bInfoT = document.getElementById('banner-info-text');
+
+  bWarn.classList.remove('visible');
+  bInfo.classList.remove('visible');
+
+  if (stato === 'aperto' && prossimo) {
+    const etaChiusura = prossimo.eta_min - preChiusura;
+    if (etaChiusura <= 10) {
+      bWarnT.textContent = `⚡ Prossima chiusura tra ~${etaChiusura.toFixed(0)} min — ${prossimo.categoria} ${prossimo.numero} verso ${prossimo.destinazione} (in ritardo: ${prossimo.ritardo > 0 ? '+' + prossimo.ritardo + 'min' : 'no'})`;
+      bWarn.classList.add('visible');
+    }
+  }
+  if (stato === 'aperto' && !prossimo) {
+    bInfoT.textContent = 'Nessun treno rilevato sulla tratta nei prossimi 60 min. Il PL rimarrà aperto.';
+    bInfo.classList.add('visible');
+  }
+}
+
+function renderTrainList(treni, preChiusura) {
+  const el = document.getElementById('train-list');
+  if (!treni.length) {
+    el.innerHTML = '<div class="empty">Nessun treno rilevato sulla tratta.</div>';
+    return;
+  }
+
+  el.innerHTML = treni.map(t => {
+    if (t.provvedimento === 1) {
+      return `<div class="train-item">
+        <div class="train-numero">${t.categoria} ${t.numero}</div>
+        <div class="train-info">
+          <div class="train-dest">${t.destinazione}</div>
+          <div class="train-sub">da ${t.origine}</div>
+        </div>
+        <span class="badge suppressed">SOPPRESSO</span>
+      </div>`;
+    }
+
+    let badgeClass, badgeText;
+    const eta = t.eta_min;
+    if (eta >= -2 && eta <= preChiusura) {
+      badgeClass = 'red'; badgeText = eta <= 0 ? '⚡ IN TRANSITO' : `⚡ ${eta.toFixed(1)}min`;
+    } else if (eta <= preChiusura + 5) {
+      badgeClass = 'orange'; badgeText = `🔶 ${eta.toFixed(1)}min`;
+    } else {
+      badgeClass = 'blue'; badgeText = `${eta.toFixed(0)}min`;
+    }
+
+    const ritardoBadge = t.ritardo > 0
+      ? `<span class="badge yellow" style="margin-left:5px">+${t.ritardo}'</span>`
+      : t.ritardo < 0 ? `<span class="badge blue" style="margin-left:5px">${t.ritardo}'</span>` : '';
+
+    const itemClass = eta >= -2 && eta <= preChiusura ? 'critical' : eta <= preChiusura + 5 ? 'warn' : '';
+    const fonteStr = t.fonte ?? t.src;
+    const dirStr   = t.direzione ?? '';
+    const binStr   = t.binario ? ` · bin. ${t.binario}` : '';
+
+    return `<div class="train-item ${itemClass}">
+      <div class="train-numero">${t.categoria} ${t.numero}</div>
+      <div class="train-info">
+        <div class="train-dest">${t.direzione ? `<span style="color:var(--muted);font-size:11px">${t.direzione}</span> ` : ''}${t.destinazione}</div>
+        <div class="train-sub">${fonteStr}${binStr}</div>
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>${ritardoBadge}
+    </div>`;
+  }).join('');
+}
+
+function renderTimeline(treni, preChiusura) {
+  const el = document.getElementById('timeline');
+  const treniValidi = treni.filter(t => t.provvedimento !== 1 && t.eta_min > -5);
+
+  if (!treniValidi.length) {
+    el.innerHTML = '<div class="empty">Nessun treno previsto sulla tratta nella prossima ora.</div>';
+    return;
+  }
+
+  el.innerHTML = treniValidi.map(t => {
+    const now = Date.now();
+    const oraPL = new Date(now + t.eta_min * 60_000);
+    const oraChiusura = new Date(now + (t.eta_min - preChiusura) * 60_000);
+    const fmtTime = d => d.toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'});
+
+    const isClosed = t.eta_min >= -2 && t.eta_min <= preChiusura;
+    const isWarn   = t.eta_min > preChiusura && t.eta_min <= preChiusura + 8;
+
+    const dotColor = isClosed ? 'var(--red)' : isWarn ? 'var(--orange)' : 'var(--blue)';
+    const chiusuraStr = preChiusura > 0
+      ? `<span style="color:var(--orange)">🔒 chiusura ~${fmtTime(oraChiusura)}</span> · `
+      : '';
+
+    return `<div class="tl-item">
+      <div class="tl-time">${fmtTime(oraPL)}</div>
+      <div class="tl-dot" style="background:${dotColor}"></div>
+      <div class="tl-content">
+        <div class="tl-title">${t.categoria} ${t.numero} → ${t.destinazione}</div>
+        <div class="tl-sub">${chiusuraStr}transito PL ~${fmtTime(oraPL)}${t.ritardo > 0 ? ` · ritardo +${t.ritardo}'` : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+// MAPPA CANVAS
+// ─────────────────────────────────────────────
+function renderMappa(treni, stato) {
+  const canvas = document.getElementById('map');
+  const cont   = document.getElementById('map-container');
+  canvas.width  = cont.offsetWidth;
+  canvas.height = cont.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid sottile
+  ctx.strokeStyle = '#1a1f2b'; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 35) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 35) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const minLat = 45.22, maxLat = 45.31, minLon = 11.73, maxLon = 11.81;
+  const pad = 50;
+
+  function toXY(lat, lon) {
+    return [
+      pad + (lon - minLon) / (maxLon - minLon) * (W - pad*2),
+      H - pad - (lat - minLat) / (maxLat - minLat) * (H - pad*2),
+    ];
+  }
+
+  const [bx, by] = toXY(45.2897, 11.7803); // Battaglia
+  const [mx, my] = toXY(45.2356, 11.7531); // Monselice
+  const [px, py] = toXY(45.260,  11.762);  // PL
+
+  // Tratta — glow
+  ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(mx,my);
+  ctx.strokeStyle = '#448aff25'; ctx.lineWidth = 8; ctx.stroke();
+
+  // Traversine
+  const angle = Math.atan2(my-by, mx-bx);
+  const dist  = Math.hypot(mx-bx, my-by);
+  const nTrav = Math.floor(dist / 11);
+  ctx.strokeStyle = '#1e2a3a'; ctx.lineWidth = 4;
+  for (let i = 0; i <= nTrav; i++) {
+    const r = i / nTrav;
+    const tx = bx + (mx-bx)*r, ty = by + (my-by)*r;
+    ctx.beginPath();
+    ctx.moveTo(tx + Math.sin(angle)*5, ty - Math.cos(angle)*5);
+    ctx.lineTo(tx - Math.sin(angle)*5, ty + Math.cos(angle)*5);
+    ctx.stroke();
+  }
+  // Binari
+  [2, -2].forEach(off => {
+    ctx.beginPath();
+    ctx.moveTo(bx + Math.sin(angle)*off, by - Math.cos(angle)*off);
+    ctx.lineTo(mx + Math.sin(angle)*off, my - Math.cos(angle)*off);
+    ctx.strokeStyle = '#448aff'; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+
+  // Stazioni
+  [[bx, by, 'BATTAGLIA TERME', 'S04413'], [mx, my, 'MONSELICE', 'S04379']].forEach(([sx, sy, name, code]) => {
+    ctx.beginPath(); ctx.arc(sx, sy, 7, 0, Math.PI*2);
+    ctx.fillStyle = '#448aff'; ctx.fill();
+    ctx.fillStyle = '#e8eaf0'; ctx.font = 'bold 11px "JetBrains Mono",monospace';
+    ctx.fillText(name, sx+12, sy-4);
+    ctx.fillStyle = '#5a6070'; ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.fillText(code, sx+12, sy+8);
+  });
+
+  // PL
+  const plColor = stato === 'chiuso' ? '#ff1744' : '#00e676';
+  const grd = ctx.createRadialGradient(px, py, 0, px, py, 28);
+  grd.addColorStop(0, plColor + '50'); grd.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(px, py, 28, 0, Math.PI*2);
+  ctx.fillStyle = grd; ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI*2);
+  ctx.fillStyle = plColor; ctx.fill();
+  ctx.fillStyle = plColor; ctx.font = 'bold 11px "JetBrains Mono",monospace';
+  ctx.fillText('◆ PASSAGGIO A LIVELLO', px+14, py-4);
+  ctx.fillStyle = '#5a6070'; ctx.font = '10px "JetBrains Mono",monospace';
+  ctx.fillText(stato === 'chiuso' ? '● CHIUSO' : '● APERTO', px+14, py+8);
+
+  // Treni sulla mappa
+  treni.forEach(t => {
+    if (t.provvedimento === 1) return;
+    const ratio = etaToRatio(t);
+    if (ratio === null) return;
+    const tx = bx + (mx-bx)*ratio, ty = by + (my-by)*ratio;
+    const tc = t.eta_min <= state.preChiusura ? '#ff1744' : t.eta_min <= state.preChiusura+5 ? '#ff9100' : '#ffd600';
+    ctx.beginPath(); ctx.arc(tx, ty, 8, 0, Math.PI*2);
+    ctx.fillStyle = tc + '30'; ctx.fill();
+    ctx.beginPath(); ctx.arc(tx, ty, 5, 0, Math.PI*2);
+    ctx.fillStyle = tc; ctx.fill();
+    ctx.fillStyle = tc; ctx.font = '10px "JetBrains Mono",monospace';
+    ctx.fillText(`${t.categoria}${t.numero}`, tx+10, ty+4);
+  });
+
+  // Legenda
+  ctx.font = '10px "JetBrains Mono",monospace';
+  const ly = H - 12;
+  [['#ff1744','in transito',0],['#ff9100','avvicinamento',80],['#ffd600','distante',175]].forEach(([c,l,x])=>{
+    ctx.fillStyle = c; ctx.fillRect(10+x, ly-9, 10, 10);
+    ctx.fillStyle = '#5a6070'; ctx.fillText(l, 24+x, ly);
+  });
+}
+
+function etaToRatio(t) {
+  // Converte l'ETA in una posizione 0–1 sulla tratta (0=Battaglia, 1=Monselice)
+  const totalMin = 8; // percorrenza totale stimata
+  const plRatio  = 0.60; // PL a ~60% partendo da Battaglia
+
+  if (t.src === 'partBattaglia' || t.src === 'arriviBattaglia') {
+    // Treno in direzione Battaglia→Monselice
+    const ratioAtPL = plRatio;
+    const minFromPL = t.eta_min; // positivo = deve ancora arrivare al PL
+    const offset = (minFromPL / totalMin);
+    return Math.max(0, Math.min(1, ratioAtPL - offset));
+  } else {
+    // Treno in direzione Monselice→Battaglia
+    const ratioAtPL = plRatio;
+    const minFromPL = t.eta_min;
+    const offset = (minFromPL / totalMin);
+    return Math.max(0, Math.min(1, ratioAtPL + offset));
+  }
+}
+
+// ─────────────────────────────────────────────
+// HELPERS UI
+// ─────────────────────────────────────────────
+function renderErrorState() {
+  const card = document.getElementById('semaforo');
+  card.className = 'semaforo-card';
+  document.getElementById('ring').className = 'ring';
+  document.getElementById('emoji').textContent = '⚠️';
+  document.getElementById('label').textContent = 'ERRORE';
+  document.getElementById('label').className = 'semaforo-label loading';
+  document.getElementById('desc').textContent = 'Impossibile raggiungere il server. Verifica che Node.js sia avviato con: node server.js';
+}
+
+function setDot(type, msg) {
+  document.getElementById('dot').className = 'dot ' + type;
+  document.getElementById('status-msg').textContent = msg;
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 5000);
+}
+
+// ─────────────────────────────────────────────
+// AUTO-REFRESH + COUNTDOWN
+// ─────────────────────────────────────────────
+function resetCd() {
+  clearInterval(state.cdTimer);
+  state.cd = 25;
+  document.getElementById('cd').textContent = state.cd;
+  if (!state.autoOn) return;
+  state.cdTimer = setInterval(() => {
+    state.cd--;
+    document.getElementById('cd').textContent = state.cd;
+    if (state.cd <= 0) { clearInterval(state.cdTimer); fetchData(); }
+  }, 1000);
+}
+
+function toggleAuto() {
+  state.autoOn = !state.autoOn;
+  document.getElementById('btn-auto').textContent = `Auto: ${state.autoOn ? 'ON' : 'OFF'}`;
+  resetCd();
+}
+
+window.addEventListener('resize', () => {
+  if (state.data) renderMappa(state.data.treni, state.data.stato);
+});
+
+
+// ─────────────────────────────────────────────
+// PANNELLO DEBUG
+// ─────────────────────────────────────────────
+let debugOpen = false;
+
+function toggleDebug() {
+  debugOpen = !debugOpen;
+  const panel = document.getElementById('debug-panel');
+  panel.classList.toggle('open', debugOpen);
+  if (debugOpen) fetchDebug();
+}
+
+async function fetchDebug() {
+  try {
+    const res = await fetch('/api/debug');
+    const data = await res.json();
+    renderDebug(data.log);
+  } catch (e) {
+    document.getElementById('debug-tbody').innerHTML =
+      `<tr><td colspan="7" style="color:var(--red)">Errore: ${e.message}</td></tr>`;
+  }
+}
+
+function renderDebug(log) {
+  const tbody = document.getElementById('debug-tbody');
+  if (!log || !log.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);padding:16px 12px;">Nessuna chiamata registrata.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = log.map(entry => {
+    const ok = !entry.error && entry.status >= 200 && entry.status < 300;
+    const statusColor = ok ? 'var(--green)' : 'var(--red)';
+    const rowClass = ok ? 'ok' : 'err-row';
+    const time = new Date(entry.ts).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const msColor = entry.ms > 3000 ? 'var(--red)' : entry.ms > 1000 ? 'var(--orange)' : 'var(--muted)';
+    const itemsStr = entry.items !== null ? String(entry.items) : '—';
+    const errStr = entry.error ? `<span style="color:var(--red)">${entry.error}</span>` : '<span style="color:var(--muted)">—</span>';
+    return `<tr class="${rowClass}">
+      <td style="color:${statusColor};font-weight:600">${entry.status || '—'}</td>
+      <td style="color:var(--text)">${entry.label}</td>
+      <td style="color:${msColor}">${entry.ms}</td>
+      <td style="color:var(--blue)">${itemsStr}</td>
+      <td><span class="debug-url" title="${entry.url}">${entry.url}</span></td>
+      <td>${errStr}</td>
+      <td style="color:var(--muted);white-space:nowrap">${time}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Auto-aggiorna il log debug se il pannello è aperto
+const origFetchData = fetchData;
+
+// ─────────────────────────────────────────────
+// AVVIO
+// ─────────────────────────────────────────────
+fetchData();
+</script>
+</body>
+</html>
