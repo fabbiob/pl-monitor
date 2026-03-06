@@ -348,7 +348,7 @@ function calcolaStatoPL(treni, preChiusuraMin) {
 // ─────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '.')));
 
 app.get('/api/status', async (req, res) => {
   const preChiusura = Math.max(0, Math.min(15,
