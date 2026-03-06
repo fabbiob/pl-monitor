@@ -29,7 +29,7 @@ const CONFIG = {
   minuti_PL_da_bologna:       38,  // treno PARTE da Bologna verso Venezia → PL dopo ~38 min
   minuti_PL_arrivo_bologna:   38,  // treno ARRIVA a Bologna da Venezia → era al PL ~38 min prima
 
-  pre_chiusura_default: 2,
+  pre_chiusura_default: 10,
 
   BASE_URL: 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno',
 
